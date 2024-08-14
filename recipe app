@@ -1,0 +1,107 @@
+import requests
+def recipe_search(ingredient, dietary_requirement):
+    # Register to get an APP ID and key https://developer.edamam.com/
+    app_id = 'ecddfcd5'
+    app_key = 'add0096cf007621cfa4c5c4ed09b8775'
+    # Map user-friendly choices to API-friendly choices
+    dietary_requirement_mapping = {
+        'High-fiber': 'high-fiber',
+        'High Protein': 'high-protein',
+        'Low-fat': 'low-fat',
+        'Balanced': 'balanced',
+        'Low-carb': 'low-carb',
+    }
+    # Ensure the user's choice is valid
+    if dietary_requirement not in dietary_requirement_mapping:
+        print("Invalid choice. Please enter either 'Paleo' or 'High Protein'.")
+        return []
+    try:
+        # Use the mapped dietary requirement in the API request
+        result = requests.get(
+            'https://api.edamam.com/search?q={}&app_id={}&app_key={}&diet={}'.format(
+                ingredient, app_id, app_key, dietary_requirement_mapping[dietary_requirement]))
+        result.raise_for_status()
+        data = result.json()
+        return data.get('hits', [])
+    except requests.exceptions.RequestException as e:
+        print(f"Error during API request: {e}")
+        return []
+def extract_recipes(data):
+    """
+    Extracts recipe information from the API response data.
+    Args:
+        data (dict or list): API response data.
+    Returns:
+        list: List of recipe information dictionaries.
+    """
+    if isinstance(data, dict):
+        hits = data.get('hits', [])
+    elif isinstance(data, list):
+        hits = data
+    else:
+        hits = []
+    recipes = []
+    for result in hits:
+        recipe = result.get('recipe', {})
+        recipes.append({
+            'label': recipe.get('label', ''),
+            'uri': recipe.get('uri', ''),
+        })
+    return recipes
+def display_recipes(recipes):
+    """
+    Displays recipe information.
+    Args:
+        recipes (list): List of recipe information dictionaries.
+    """
+    for recipe in recipes:
+        print(f"Recipe: {recipe['label']}")
+        print(f"URI: {recipe['uri']}")
+        print()
+def choice():
+    user_choice = input("enter your dietary requirements choice (High-fiber or Low-fat or High Protein or Balanced or Low-carb): ")
+    choices = ["High-fiber","Low-fat", "High Protein", "Balanced", "Low-carb"]
+    if user_choice not in choices:
+        print("Invalid choice. Please enter either 'High-fiber' or 'High Protein' or 'Low-fat' or 'Balanced' or 'Low-carb'")
+        return
+    ingredient = input('Enter an ingredient: ')
+    results = recipe_search(ingredient, user_choice)
+    if not results:
+        print(f"No {user_choice} recipes found for the given ingredient.")
+        return
+    recipes = extract_recipes(results)
+    display_recipes(recipes)
+    chosen_recipe = choose_recipe(recipes)
+    print("\nChosen Recipe:")
+    print(f"Recipe: {chosen_recipe['label']}")
+    print(f"URI: {chosen_recipe['uri']}")
+def choose_recipe(recipes):
+    """
+    Asks the user to choose a recipe based on additional questions.
+    Args:
+        recipes (list): List of recipe information dictionaries.
+    Returns:
+        dict: Chosen recipe information.
+    """
+    print("Choose a recipe:")
+    for i, recipe in enumerate(recipes, 1):
+        print(f"{i}. {recipe['label']}")
+    choice = input("Enter the number of the recipe you want to choose: ")
+    try:
+        index = int(choice) - 1
+        if 0 <= index < len(recipes):
+            return recipes[index]
+        else:
+            print("Invalid choice. Please enter a valid number.")
+            return choose_recipe(recipes)
+    except ValueError:
+        print("Invalid input. Please enter a valid number.")
+        return choose_recipe(recipes)
+def run():
+    ingredient = input('Enter an ingredient: ')
+    results = recipe_search(ingredient)
+    recipes = extract_recipes(results)
+    display_recipes(recipes)
+if __name__ == "__main__":
+    choice()
+
